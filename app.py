@@ -9,8 +9,8 @@ from tensorflow.keras.preprocessing.sequence import pad_sequences
 # Developed by Shaykh Molla Lakshmipuri
 # -------------------------------------------------
 
-MODEL_PATH = "bangla_lstm_model.keras"
-TOKENIZER_PATH = "tokenizer.pkl"
+MODEL_PATH = "bangla_lstm.keras"
+TOKENIZER_PATH = "tokenizer.pickle"
 MAX_LEN = 100
 
 st.set_page_config(
@@ -61,4 +61,4 @@ if st.button("🔍 Sentiment Predict", use_container_width=True):
             st.error("😞 Negative Sentiment")
 
 st.markdown("---")
-st.caption("MD. Nazmul Hasan Khan Mahmud| Bangla Sentiment Analysis")
+st.caption("MD. Nazmul Hasan Khan Mahmud | Bangla Sentiment Analysis")
