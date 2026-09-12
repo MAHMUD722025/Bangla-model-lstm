@@ -61,4 +61,4 @@ if st.button("🔍 Sentiment Predict", use_container_width=True):
             st.error("😞 Negative Sentiment")
 
 st.markdown("---")
-st.caption("© Shaykh Molla Lakshmipuri | Bangla Sentiment Analysis")
+st.caption("MD. Nazmul Hasan Khan Mahmud| Bangla Sentiment Analysis")
