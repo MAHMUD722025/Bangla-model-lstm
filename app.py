@@ -6,12 +6,12 @@ from tensorflow.keras.preprocessing.sequence import pad_sequences
 
 # -------------------------------------------------
 # Bangla Sentiment Analysis using Bidirectional LSTM
-# Developed by Shaykh Molla Lakshmipuri
+# Developed by Md. Nazmul Hasan Khan Mahmud 
 # -------------------------------------------------
 
 MODEL_PATH = "bangla_lstm.keras"
 TOKENIZER_PATH = "tokenizer.pickle"
-MAX_LEN = 100
+MAX_LEN = 50
 
 st.set_page_config(
     page_title="বাংলা Sentiment Analysis",
