@@ -20,7 +20,7 @@ st.set_page_config(
 
 st.title("🇧🇩 বাংলা Sentiment Analysis")
 st.write("Bidirectional LSTM দিয়ে বাংলা লেখার sentiment বিশ্লেষণ করুন।")
-st.caption("Developed by Shaykh Molla Lakshmipuri")
+st.caption("Developed by Md. Nazmu Hasan Khan Mahmud")
 
 @st.cache_resource
 def load_resources():
