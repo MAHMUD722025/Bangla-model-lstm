@@ -1,12 +1,11 @@
 import streamlit as st
-import numpy as np
 import pickle
 from tensorflow.keras.models import load_model
 from tensorflow.keras.preprocessing.sequence import pad_sequences
 
 # -------------------------------------------------
 # Bangla Sentiment Analysis using Bidirectional LSTM
-# Developed by Md. Nazmul Hasan Khan Mahmud 
+# Developed by Md. Nazmul Hasan Khan Mahmud
 # -------------------------------------------------
 
 MODEL_PATH = "bangla_lstm.keras"
@@ -33,7 +32,7 @@ def load_resources():
 try:
     model, tokenizer = load_resources()
 except Exception as e:
-    st.error("Model বা tokenizer load করা যাচ্ছে না। Repository-তে model এবং tokenizer file আছে কি না দেখুন।")
+    st.error(f"Model বা tokenizer load করা যাচ্ছে না: {e}")
     st.stop()
 
 text = st.text_area(
@@ -46,8 +45,15 @@ if st.button("🔍 Sentiment Predict", use_container_width=True):
     if not text.strip():
         st.warning("দয়া করে কিছু বাংলা লেখা লিখুন।")
     else:
+        # IMPORTANT: inference preprocessing must match training.
+        # Keras pad_sequences defaults are pre-padding and pre-truncation.
         sequence = tokenizer.texts_to_sequences([text])
-        padded = pad_sequences(sequence, maxlen=MAX_LEN, padding="post", truncating="post")
+        padded = pad_sequences(
+            sequence,
+            maxlen=MAX_LEN,
+            padding="pre",
+            truncating="pre"
+        )
 
         prediction = float(model.predict(padded, verbose=0)[0][0])
 
