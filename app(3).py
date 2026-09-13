@@ -11,15 +11,16 @@ MODEL_PATH = "bangla_real.keras"
 TOKENIZER_PATH = "tokenizer_real.pickle"
 MAX_LEN = 50
 
-# Training code used labels 0, 1, 2.
-# Change these names only if your dataset uses a different label mapping.
+# Dataset label mapping:
+# 0 = Negative
+# 1 = Positive
+# 2 = Neutral
 CLASS_NAMES = [
     "নেগেটিভ (Negative)",
-    "নিউট্রাল (Neutral)",
     "পজিটিভ (Positive)",
+    "নিউট্রাল (Neutral)",
 ]
 
-# IMPORTANT:
 # Your training code used pad_sequences(sequences, maxlen=50)
 # without specifying padding/truncating, so Keras defaults are:
 # padding='pre', truncating='pre'
