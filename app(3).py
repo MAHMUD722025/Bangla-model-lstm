@@ -65,13 +65,13 @@ def predict(text, model, tokenizer):
 # STREAMLIT UI
 # =========================================================
 st.set_page_config(
-    page_title="বাংলা Sentiment Analyzer",
+    page_title="বাংলা political Sentiment Analyzer ",
     page_icon="🇧🇩",
     layout="centered",
 )
 
-st.title("🇧🇩 বাংলা Sentiment Analyzer")
-st.write("তোমার trained Bidirectional LSTM model দিয়ে বাংলা লেখার sentiment বিশ্লেষণ করো।")
+st.title("🇧🇩 বাংলা political Sentiment Analyzer")
+st.write("রাজনৈতিক,অর্থনৈতিক এরকম কিছু লিখুন")
 
 try:
     model, tokenizer = load_artifacts()
@@ -85,7 +85,7 @@ except Exception as e:
     st.stop()
 
 text = st.text_area(
-    "বাংলা লেখা লিখো 👇",
+    "বাংলা লেখা লিখুন👇",
     height=180,
     placeholder="উদাহরণ: এই সিনেমাটি সত্যিই অসাধারণ ছিল।",
 )
@@ -124,4 +124,4 @@ if st.button("🔍 Sentiment Predict", use_container_width=True, type="primary")
             )
 
 st.divider()
-st.caption("Model: Bidirectional LSTM • Vocabulary: 20,000 • Sequence length: 50")
+st.caption("Model: Developed by Md. Nazmul Hasan Khan Mahmud. Bidirectional LSTM • Vocabulary: 20,000 • Sequence length: 50")
