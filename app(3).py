@@ -87,7 +87,7 @@ except Exception as e:
 text = st.text_area(
     "বাংলা লেখা লিখুন👇",
     height=180,
-    placeholder="উদাহরণ: এই সিনেমাটি সত্যিই অসাধারণ ছিল।",
+    placeholder="দেশটা রসাতলে যাচ্ছে!",
 )
 
 if st.button("🔍 Sentiment Predict", use_container_width=True, type="primary"):
