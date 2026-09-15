@@ -11,9 +11,15 @@ MODEL_PATH = "bangla_real(2).keras"
 TOKENIZER_PATH = "tokenizer_real(2).pickle"
 MAX_LEN = 80
 
-# Binary sentiment classes:
+# Training code uses:
 # 0 = Negative
 # 1 = Positive
+#
+# IMPORTANT:
+# The training code used pad_sequences(sequences, maxlen=80)
+# without specifying padding/truncating. Keras therefore uses
+# padding='pre' and truncating='pre' by default.
+
 
 # =========================================================
 # LOAD MODEL + TOKENIZER
@@ -32,39 +38,33 @@ def load_artifacts():
 # PREDICTION
 # =========================================================
 def predict_sentiment(text, model, tokenizer):
+    # Use the EXACT same tokenizer saved during training.
     sequence = tokenizer.texts_to_sequences([text])
 
-    # The model expects a fixed sequence length of 80.
+    # EXACTLY matches the training code:
+    # pad_sequences(sequences, maxlen=80)
+    # Keras defaults: padding='pre', truncating='pre'
     padded = pad_sequences(
         sequence,
         maxlen=MAX_LEN,
-        padding="post",
-        truncating="post",
+        padding="pre",
+        truncating="pre",
     )
 
     prediction = model.predict(padded, verbose=0)
-    output = np.asarray(prediction).squeeze()
 
-    # Case 1: Binary sigmoid output, e.g. [0.82]
-    if np.ndim(output) == 0:
-        positive_probability = float(output)
-        positive_probability = max(0.0, min(1.0, positive_probability))
-        negative_probability = 1.0 - positive_probability
-
-    # Case 2: Two-neuron softmax output, [negative, positive]
-    elif np.size(output) == 2:
-        probabilities = np.asarray(output, dtype=float).reshape(-1)
-        probabilities = probabilities / probabilities.sum()
-        negative_probability = float(probabilities[0])
-        positive_probability = float(probabilities[1])
-
-    else:
-        raise ValueError(
-            f"এই binary app-এর জন্য model output shape সঠিক নয়: {np.shape(prediction)}"
-        )
+    # Training model ends with Dense(1, activation='sigmoid').
+    # Therefore the single output is the probability of class 1 = Positive.
+    positive_probability = float(np.asarray(prediction).reshape(-1)[0])
+    positive_probability = max(0.0, min(1.0, positive_probability))
+    negative_probability = 1.0 - positive_probability
 
     predicted_class = 1 if positive_probability >= 0.5 else 0
-    confidence = positive_probability if predicted_class == 1 else negative_probability
+    confidence = (
+        positive_probability
+        if predicted_class == 1
+        else negative_probability
+    )
 
     return (
         predicted_class,
@@ -85,7 +85,9 @@ st.set_page_config(
 )
 
 st.title("📚 বাংলা বই রিভিউ Analyzer")
-st.caption("Bidirectional LSTM দিয়ে বাংলা বইয়ের রিভিউ Positive বা Negative হিসেবে বিশ্লেষণ করুন।")
+st.caption(
+    "Bidirectional LSTM দিয়ে বাংলা বইয়ের রিভিউ Positive বা Negative হিসেবে বিশ্লেষণ করুন।"
+)
 
 try:
     model, tokenizer = load_artifacts()
@@ -104,7 +106,11 @@ review = st.text_area(
     placeholder="উদাহরণ: বইটির গল্প অসাধারণ। লেখকের ভাষা খুব সুন্দর এবং পড়তে অনেক ভালো লেগেছে।",
 )
 
-if st.button("🔍 রিভিউ বিশ্লেষণ করুন", use_container_width=True, type="primary"):
+if st.button(
+    "🔍 রিভিউ বিশ্লেষণ করুন",
+    use_container_width=True,
+    type="primary",
+):
     if not review.strip():
         st.warning("দয়া করে আগে একটি বইয়ের রিভিউ লিখুন।")
     else:
@@ -120,9 +126,13 @@ if st.button("🔍 রিভিউ বিশ্লেষণ করুন", use_c
             st.subheader("📊 ফলাফল")
 
             if predicted_class == 1:
-                st.success(f"### 😊 Positive (1)\nConfidence: **{confidence:.2f}%**")
+                st.success(
+                    f"### 😊 Positive (1)\nConfidence: **{confidence:.2f}%**"
+                )
             else:
-                st.error(f"### 😞 Negative (0)\nConfidence: **{confidence:.2f}%**")
+                st.error(
+                    f"### 😞 Negative (0)\nConfidence: **{confidence:.2f}%**"
+                )
 
             st.write("### ক্লাসের সম্ভাবনা")
 
@@ -144,6 +154,8 @@ if st.button("🔍 রিভিউ বিশ্লেষণ করুন", use_c
                 st.write("Tokenized sequence:", token_sequence)
                 st.write("Input shape:", (1, MAX_LEN))
                 st.write("Class mapping:", "0 = Negative, 1 = Positive")
+                st.write("Padding:", "pre (same as training)")
+                st.write("Truncating:", "pre (same as training)")
 
         except Exception as e:
             st.error("রিভিউ বিশ্লেষণ করার সময় সমস্যা হয়েছে।")
