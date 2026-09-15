@@ -11,13 +11,9 @@ MODEL_PATH = "bangla_real(2).keras"
 TOKENIZER_PATH = "tokenizer_real(2).pickle"
 MAX_LEN = 50
 
-# The trained model has 3 output neurons (softmax).
-# Keep this order consistent with the label encoding used during training.
-CLASS_NAMES = [
-    "নেগেটিভ (Negative)",
-    "নিউট্রাল (Neutral)",
-    "পজিটিভ (Positive)",
-]
+# Binary sentiment classes:
+# 0 = Negative
+# 1 = Positive
 
 # =========================================================
 # LOAD MODEL + TOKENIZER
@@ -38,7 +34,7 @@ def load_artifacts():
 def predict_sentiment(text, model, tokenizer):
     sequence = tokenizer.texts_to_sequences([text])
 
-    # IMPORTANT: must match the training preprocessing.
+    # The model expects a fixed sequence length of 50.
     padded = pad_sequences(
         sequence,
         maxlen=MAX_LEN,
@@ -46,32 +42,50 @@ def predict_sentiment(text, model, tokenizer):
         truncating="post",
     )
 
-    probabilities = model.predict(padded, verbose=0)[0]
+    prediction = model.predict(padded, verbose=0)
+    output = np.asarray(prediction).squeeze()
 
-    # Safety check in case the saved model has a different output size.
-    if len(probabilities) != len(CLASS_NAMES):
+    # Case 1: Binary sigmoid output, e.g. [0.82]
+    if np.ndim(output) == 0:
+        positive_probability = float(output)
+        positive_probability = max(0.0, min(1.0, positive_probability))
+        negative_probability = 1.0 - positive_probability
+
+    # Case 2: Two-neuron softmax output, [negative, positive]
+    elif np.size(output) == 2:
+        probabilities = np.asarray(output, dtype=float).reshape(-1)
+        probabilities = probabilities / probabilities.sum()
+        negative_probability = float(probabilities[0])
+        positive_probability = float(probabilities[1])
+
+    else:
         raise ValueError(
-            f"Model output has {len(probabilities)} classes, "
-            f"but CLASS_NAMES contains {len(CLASS_NAMES)} labels."
+            f"এই binary app-এর জন্য model output shape সঠিক নয়: {np.shape(prediction)}"
         )
 
-    predicted_index = int(np.argmax(probabilities))
-    confidence = float(probabilities[predicted_index]) * 100
+    predicted_class = 1 if positive_probability >= 0.5 else 0
+    confidence = positive_probability if predicted_class == 1 else negative_probability
 
-    return predicted_index, confidence, probabilities, sequence[0]
+    return (
+        predicted_class,
+        confidence * 100,
+        negative_probability,
+        positive_probability,
+        sequence[0],
+    )
 
 
 # =========================================================
 # STREAMLIT PAGE
 # =========================================================
 st.set_page_config(
-    page_title="বাংলা Sentiment Analyzer",
-    page_icon="🇧🇩",
+    page_title="বাংলা বই রিভিউ Analyzer",
+    page_icon="📚",
     layout="centered",
 )
 
-st.title("🇧🇩 বাংলা Sentiment Analyzer")
-st.caption("Bidirectional LSTM দিয়ে বাংলা টেক্সটের sentiment prediction")
+st.title("📚 বাংলা বই রিভিউ Analyzer")
+st.caption("Bidirectional LSTM দিয়ে বাংলা বইয়ের রিভিউ Positive বা Negative হিসেবে বিশ্লেষণ করুন।")
 
 try:
     model, tokenizer = load_artifacts()
@@ -84,58 +98,59 @@ except Exception as e:
     )
     st.stop()
 
-text = st.text_area(
-    "বাংলা লেখা লিখুন 👇",
-    height=180,
-    placeholder="উদাহরণ: এই পণ্যটির মান খুব ভালো, আমি অনেক খুশি।",
+review = st.text_area(
+    "📖 বইয়ের রিভিউ লিখুন",
+    height=200,
+    placeholder="উদাহরণ: বইটির গল্প অসাধারণ। লেখকের ভাষা খুব সুন্দর এবং পড়তে অনেক ভালো লেগেছে।",
 )
 
-if st.button("🔍 Sentiment Predict", use_container_width=True, type="primary"):
-    if not text.strip():
-        st.warning("দয়া করে আগে কিছু বাংলা লেখা লিখুন।")
+if st.button("🔍 রিভিউ বিশ্লেষণ করুন", use_container_width=True, type="primary"):
+    if not review.strip():
+        st.warning("দয়া করে আগে একটি বইয়ের রিভিউ লিখুন।")
     else:
         try:
-            pred_idx, confidence, probabilities, token_sequence = predict_sentiment(
-                text, model, tokenizer
-            )
+            (
+                predicted_class,
+                confidence,
+                negative_probability,
+                positive_probability,
+                token_sequence,
+            ) = predict_sentiment(review, model, tokenizer)
 
-            st.subheader("📊 Prediction")
-            st.success(
-                f"**{CLASS_NAMES[pred_idx]}** — Confidence: **{confidence:.2f}%**"
-            )
+            st.subheader("📊 ফলাফল")
 
-            st.write("### সব ক্লাসের সম্ভাবনা")
-            ranked = sorted(
-                zip(CLASS_NAMES, probabilities),
-                key=lambda x: float(x[1]),
-                reverse=True,
-            )
+            if predicted_class == 1:
+                st.success(f"### 😊 Positive (1)\nConfidence: **{confidence:.2f}%**")
+            else:
+                st.error(f"### 😞 Negative (0)\nConfidence: **{confidence:.2f}%**")
 
-            for name, probability in ranked:
-                st.write(f"**{name}**")
-                st.progress(float(probability))
-                st.caption(f"{float(probability) * 100:.2f}%")
+            st.write("### ক্লাসের সম্ভাবনা")
+
+            st.write("**Positive (1)**")
+            st.progress(float(positive_probability))
+            st.caption(f"{positive_probability * 100:.2f}%")
+
+            st.write("**Negative (0)**")
+            st.progress(float(negative_probability))
+            st.caption(f"{negative_probability * 100:.2f}%")
 
             if len(token_sequence) == 0:
                 st.warning(
-                    "Tokenizer এই লেখার কোনো শব্দ চিনতে পারেনি। "
-                    "এই prediction কম নির্ভরযোগ্য হতে পারে।"
+                    "Tokenizer এই রিভিউয়ের কোনো পরিচিত শব্দ খুঁজে পায়নি। "
+                    "তাই এই prediction কম নির্ভরযোগ্য হতে পারে।"
                 )
 
             with st.expander("🔧 Technical details"):
                 st.write("Tokenized sequence:", token_sequence)
                 st.write("Input shape:", (1, MAX_LEN))
-                st.write(
-                    "Raw probabilities:",
-                    [round(float(p), 6) for p in probabilities],
-                )
+                st.write("Class mapping:", "0 = Negative, 1 = Positive")
 
         except Exception as e:
-            st.error("Prediction করার সময় সমস্যা হয়েছে।")
+            st.error("রিভিউ বিশ্লেষণ করার সময় সমস্যা হয়েছে।")
             st.code(str(e))
 
 st.divider()
 st.caption(
     "Model: Developed by Md. Nazmul Hasan Khan Mahmud • "
-    "Bidirectional LSTM • Sequence length: 50"
+    "Bidirectional LSTM • Binary Sentiment Classification"
 )
