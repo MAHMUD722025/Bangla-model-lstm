@@ -9,7 +9,7 @@ from tensorflow.keras.preprocessing.sequence import pad_sequences
 # =========================================================
 MODEL_PATH = "bangla_real(2).keras"
 TOKENIZER_PATH = "tokenizer_real(2).pickle"
-MAX_LEN = 50
+MAX_LEN = 80
 
 # Binary sentiment classes:
 # 0 = Negative
@@ -34,7 +34,7 @@ def load_artifacts():
 def predict_sentiment(text, model, tokenizer):
     sequence = tokenizer.texts_to_sequences([text])
 
-    # The model expects a fixed sequence length of 50.
+    # The model expects a fixed sequence length of 80.
     padded = pad_sequences(
         sequence,
         maxlen=MAX_LEN,
@@ -152,5 +152,5 @@ if st.button("🔍 রিভিউ বিশ্লেষণ করুন", use_c
 st.divider()
 st.caption(
     "Model: Developed by Md. Nazmul Hasan Khan Mahmud • "
-    "Bidirectional LSTM • Binary Sentiment Classification"
+    "Bidirectional LSTM • Binary Sentiment Classification • Sequence length: 80"
 )
