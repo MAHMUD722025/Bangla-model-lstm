@@ -1,5 +1,5 @@
 import pickle
-import re
+import unicodedata
 import numpy as np
 import streamlit as st
 import tensorflow as tf
@@ -24,12 +24,22 @@ MAX_LEN = 80
 # TEXT CLEANING
 # =========================================================
 def remove_punctuation(text):
-    """Remove punctuation/symbols before sending text to the tokenizer."""
-    # Keep Unicode letters/numbers/whitespace (works with Bangla too).
-    # Everything else, including Bengali/English punctuation, is removed.
-    text = re.sub(r"[^\w\s]", " ", text, flags=re.UNICODE)
-    text = re.sub(r"\s+", " ", text).strip()
-    return text
+    """Remove punctuation/symbols while preserving Bangla letters and vowel signs."""
+    # Do NOT use [^\w\s] here because some Bangla vowel signs (কার/মাত্রা)
+    # are Unicode combining marks and may be removed by that pattern.
+    # Keep all Unicode letters, marks, numbers and whitespace.
+    # Remove punctuation and symbols only.
+    cleaned = []
+    for char in text:
+        category = unicodedata.category(char)
+        if category.startswith("P") or category.startswith("S"):
+            cleaned.append(" ")
+        else:
+            cleaned.append(char)
+
+    text = "".join(cleaned)
+    text = " ".join(text.split())
+    return text.strip()
 
 
 # =========================================================
@@ -49,7 +59,7 @@ def load_artifacts():
 # PREDICTION
 # =========================================================
 def predict_sentiment(text, model, tokenizer):
-    # Ignore punctuation before tokenization.
+    # Ignore punctuation before tokenization, but keep Bangla কার/ইকার/মাত্রা.
     cleaned_text = remove_punctuation(text)
 
     # Use the EXACT same tokenizer saved during training.
