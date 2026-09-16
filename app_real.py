@@ -1,4 +1,5 @@
 import pickle
+import re
 import numpy as np
 import streamlit as st
 import tensorflow as tf
@@ -15,10 +16,20 @@ MAX_LEN = 80
 # 0 = Negative
 # 1 = Positive
 #
-# IMPORTANT:
-# The training code used pad_sequences(sequences, maxlen=80)
-# without specifying padding/truncating. Keras therefore uses
-# padding='pre' and truncating='pre' by default.
+# The training code used pad_sequences(sequences, maxlen=80),
+# whose defaults are padding='pre' and truncating='pre'.
+
+
+# =========================================================
+# TEXT CLEANING
+# =========================================================
+def remove_punctuation(text):
+    """Remove punctuation/symbols before sending text to the tokenizer."""
+    # Keep Unicode letters/numbers/whitespace (works with Bangla too).
+    # Everything else, including Bengali/English punctuation, is removed.
+    text = re.sub(r"[^\w\s]", " ", text, flags=re.UNICODE)
+    text = re.sub(r"\s+", " ", text).strip()
+    return text
 
 
 # =========================================================
@@ -38,8 +49,11 @@ def load_artifacts():
 # PREDICTION
 # =========================================================
 def predict_sentiment(text, model, tokenizer):
+    # Ignore punctuation before tokenization.
+    cleaned_text = remove_punctuation(text)
+
     # Use the EXACT same tokenizer saved during training.
-    sequence = tokenizer.texts_to_sequences([text])
+    sequence = tokenizer.texts_to_sequences([cleaned_text])
 
     # EXACTLY matches the training code:
     # pad_sequences(sequences, maxlen=80)
@@ -53,8 +67,7 @@ def predict_sentiment(text, model, tokenizer):
 
     prediction = model.predict(padded, verbose=0)
 
-    # Training model ends with Dense(1, activation='sigmoid').
-    # Therefore the single output is the probability of class 1 = Positive.
+    # Dense(1, activation='sigmoid') -> probability of Positive (class 1).
     positive_probability = float(np.asarray(prediction).reshape(-1)[0])
     positive_probability = max(0.0, min(1.0, positive_probability))
     negative_probability = 1.0 - positive_probability
@@ -72,6 +85,7 @@ def predict_sentiment(text, model, tokenizer):
         negative_probability,
         positive_probability,
         sequence[0],
+        cleaned_text,
     )
 
 
@@ -103,7 +117,7 @@ except Exception as e:
 review = st.text_area(
     "📖 বইয়ের রিভিউ লিখুন",
     height=200,
-    placeholder="উদাহরণ: বইটির গল্প অসাধারণ। লেখকের ভাষা খুব সুন্দর এবং পড়তে অনেক ভালো লেগেছে।",
+    placeholder="উদাহরণ: বইটির গল্প অসাধারণ! লেখকের ভাষা খুব সুন্দর এবং পড়তে অনেক ভালো লেগেছে।",
 )
 
 if st.button(
@@ -121,6 +135,7 @@ if st.button(
                 negative_probability,
                 positive_probability,
                 token_sequence,
+                cleaned_text,
             ) = predict_sentiment(review, model, tokenizer)
 
             st.subheader("📊 ফলাফল")
@@ -151,6 +166,8 @@ if st.button(
                 )
 
             with st.expander("🔧 Technical details"):
+                st.write("Punctuation:", "Ignored / removed")
+                st.write("Cleaned text:", cleaned_text)
                 st.write("Tokenized sequence:", token_sequence)
                 st.write("Input shape:", (1, MAX_LEN))
                 st.write("Class mapping:", "0 = Negative, 1 = Positive")
