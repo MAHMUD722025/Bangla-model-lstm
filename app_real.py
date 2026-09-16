@@ -1,5 +1,4 @@
 import pickle
-import unicodedata
 import numpy as np
 import streamlit as st
 import tensorflow as tf
@@ -21,28 +20,6 @@ MAX_LEN = 80
 
 
 # =========================================================
-# TEXT CLEANING
-# =========================================================
-def remove_punctuation(text):
-    """Remove punctuation/symbols while preserving Bangla letters and vowel signs."""
-    # Do NOT use [^\w\s] here because some Bangla vowel signs (কার/মাত্রা)
-    # are Unicode combining marks and may be removed by that pattern.
-    # Keep all Unicode letters, marks, numbers and whitespace.
-    # Remove punctuation and symbols only.
-    cleaned = []
-    for char in text:
-        category = unicodedata.category(char)
-        if category.startswith("P") or category.startswith("S"):
-            cleaned.append(" ")
-        else:
-            cleaned.append(char)
-
-    text = "".join(cleaned)
-    text = " ".join(text.split())
-    return text.strip()
-
-
-# =========================================================
 # LOAD MODEL + TOKENIZER
 # =========================================================
 @st.cache_resource(show_spinner="মডেল ও tokenizer লোড হচ্ছে...")
@@ -59,11 +36,9 @@ def load_artifacts():
 # PREDICTION
 # =========================================================
 def predict_sentiment(text, model, tokenizer):
-    # Ignore punctuation before tokenization, but keep Bangla কার/ইকার/মাত্রা.
-    cleaned_text = remove_punctuation(text)
-
     # Use the EXACT same tokenizer saved during training.
-    sequence = tokenizer.texts_to_sequences([cleaned_text])
+    # Punctuation is NOT removed or modified.
+    sequence = tokenizer.texts_to_sequences([text])
 
     # EXACTLY matches the training code:
     # pad_sequences(sequences, maxlen=80)
@@ -95,7 +70,7 @@ def predict_sentiment(text, model, tokenizer):
         negative_probability,
         positive_probability,
         sequence[0],
-        cleaned_text,
+        text,
     )
 
 
@@ -145,7 +120,7 @@ if st.button(
                 negative_probability,
                 positive_probability,
                 token_sequence,
-                cleaned_text,
+                original_text,
             ) = predict_sentiment(review, model, tokenizer)
 
             st.subheader("📊 ফলাফল")
@@ -176,8 +151,8 @@ if st.button(
                 )
 
             with st.expander("🔧 Technical details"):
-                st.write("Punctuation:", "Ignored / removed")
-                st.write("Cleaned text:", cleaned_text)
+                st.write("Punctuation:", "Not removed")
+                st.write("Original text:", original_text)
                 st.write("Tokenized sequence:", token_sequence)
                 st.write("Input shape:", (1, MAX_LEN))
                 st.write("Class mapping:", "0 = Negative, 1 = Positive")
