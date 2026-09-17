@@ -78,12 +78,12 @@ def predict_sentiment(text, model, tokenizer):
 # STREAMLIT PAGE
 # =========================================================
 st.set_page_config(
-    page_title="বাংলা বই রিভিউ Analyzer",
-    page_icon="📚",
+    page_title="🇧🇩📚 Bangla book বই review Analyzer",
+    page_icon="📚🇧🇩",
     layout="centered",
 )
 
-st.title("📚 বাংলা বই রিভিউ Analyzer")
+st.title("🇧🇩📚 Bangla book review Analyzer")
 st.caption(
     "Bidirectional LSTM দিয়ে বাংলা বইয়ের রিভিউ Positive বা Negative হিসেবে বিশ্লেষণ করুন।"
 )
